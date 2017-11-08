@@ -29,6 +29,8 @@ for i in range(episodes):
         state = game.get_state()
         img = state.screen_buffer # return a numpy array 3x240x320
         misc = state.game_variables
+        # make_action take a distribution as input? So it also do the 
+        # e-greedy selection inside?
         reward = game.make_action(random.choice(actions))
         print("\treward:", reward)
         time.sleep(0.02)
