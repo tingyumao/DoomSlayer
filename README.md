@@ -1,5 +1,5 @@
 # E6885 Reinforcement Learning Final project: Doom Slayer
-Tingyu Mao tm2838, Kaili Chen kc3031, Jingyu Qian jq2250, Tian Zhou tz2307, Lingyu Zhang lz2494
+Tingyu Mao, Kaili Chen, Jingyu Qian, Tian Zhou, Lingyu Zhang
 
 We want to create an agent which can perform well in Doom, a first-person shooting game.
 
