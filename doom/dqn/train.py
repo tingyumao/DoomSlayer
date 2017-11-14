@@ -141,7 +141,8 @@ def train():
                         batch_yjs.append(batch_reward[i] + GAMMA * np.max(batch_qj1[i]))
                         
                 # train_step: update networks
-                session.run(train_step, feed_dict={states_ph: batch_sj, actions_ph: batch_action, ys_ph: batch_yjs})
+                batch_loss, _ = session.run([loss, train_step], 
+                                      feed_dict={states_ph: batch_sj, actions_ph: batch_action, ys_ph: batch_yjs})
                 
             # update t
             t += 1
@@ -155,6 +156,7 @@ def train():
         print("*"*100)
         print("Finish {} th episode at {} th time steps.".format(e, t))
         print("Reward in {} th episode: {}".format(e, game.get_total_reward()))
+        print("Minibatch train loss in {} th episode: {}".format(e, batch_loss))
         print("Size of Replay Cache: {}".format(len(replay_cache)))
         print("*"*100)
         # save the model every 100 episodes
