@@ -19,10 +19,10 @@ class QNetwork(object):
     
     """
     def __init__(self, config):
-        self.conv1_cfg = config.get("conv1_cfg", default=[8,8,4,16])
-        self.conv2_cfg = config.get("conv2_cfg", default=[4,4,2,32])
-        self.fc_size = config.get("fc_size", default=256)
-        self.action_num = config.get("action_num", default=3)
+        self.conv1_cfg = config.get("conv1_cfg", [8,8,4,16])
+        self.conv2_cfg = config.get("conv2_cfg", [4,4,2,32])
+        self.fc_size = config.get("fc_size", 256)
+        self.action_num = config.get("action_num", 3)
         # define weight and bias for the last FC layer which is followed by ReLU. 
         #self.fc_w = weight_variable([flatten_size, 256])
         #self.fc_b = bias_variable([256,])
@@ -36,15 +36,15 @@ class QNetwork(object):
         # conv1
         in_channels = tf.shape(state)[2]
         filter_h, filter_w, strides, out_channels = self.conv1_cfg
-        h = tf.nn.conv2d(state,[filter_h, filter_w, in_channels, out_channels],
-                         strides,"VALID",use_cudnn_on_gpu=True,data_format='NHWC',name="conv1")
+        h = tf.layers.conv2d(state, out_channels, [filter_h, filter_w],
+                             strides=[strides, strides], padding="valid",data_format='channels_last',name="conv1")
         h = tf.nn.relu(h)
         
         # conv2
-        in_channels = out_channels.copy()
+        in_channels = tf.shape(h)[2]
         filter_h, filter_w, strides, out_channels = self.conv2_cfg
-        h = tf.nn.conv2d(state,[filter_h, filter_w, in_channels, out_channels],
-                         strides,"VALID",use_cudnn_on_gpu=True,data_format='NHWC',name="conv2")
+        h = tf.layers.conv2d(h, out_channels, [filter_h, filter_w],
+                             strides=[strides, strides], padding="valid",data_format='channels_last',name="conv2")
         h = tf.nn.relu(h)
         
         # flatten
