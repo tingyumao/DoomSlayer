@@ -19,7 +19,7 @@ class QNetwork(object):
     
     """
     def __init__(self, config):
-        self.conv1_cfg = config.get("conv1_cfg", [8,8,4,16])
+        self.conv1_cfg = config.get("conv1_cfg", [8,8,4,16]) # kernel width, kernel height, stride, filters
         self.conv2_cfg = config.get("conv2_cfg", [4,4,2,32])
         self.fc_size = config.get("fc_size", 256)
         self.action_num = config.get("action_num", 3)
@@ -34,14 +34,14 @@ class QNetwork(object):
     def __call__(self, state):
         
         # conv1
-        in_channels = tf.shape(state)[2]
+        #in_channels = tf.shape(state)[2]
         filter_h, filter_w, strides, out_channels = self.conv1_cfg
         h = tf.layers.conv2d(state, out_channels, [filter_h, filter_w],
                              strides=[strides, strides], padding="valid",data_format='channels_last',name="conv1")
         h = tf.nn.relu(h)
         
         # conv2
-        in_channels = tf.shape(h)[2]
+        #in_channels = tf.shape(h)[2]
         filter_h, filter_w, strides, out_channels = self.conv2_cfg
         h = tf.layers.conv2d(h, out_channels, [filter_h, filter_w],
                              strides=[strides, strides], padding="valid",data_format='channels_last',name="conv2")

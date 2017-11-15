@@ -1,2 +1,6 @@
-model_checkpoint_path: "doom-dqn-99"
-all_model_checkpoint_paths: "doom-dqn-99"
+model_checkpoint_path: "doom-dqn-10000"
+all_model_checkpoint_paths: "doom-dqn-9600"
+all_model_checkpoint_paths: "doom-dqn-9700"
+all_model_checkpoint_paths: "doom-dqn-9800"
+all_model_checkpoint_paths: "doom-dqn-9900"
+all_model_checkpoint_paths: "doom-dqn-10000"
