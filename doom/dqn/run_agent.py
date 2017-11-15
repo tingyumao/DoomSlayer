@@ -68,7 +68,7 @@ def run():
     session.run(tf.global_variables_initializer())
 
     # load model
-    checkpoint = tf.train.get_checkpoint_state("saved_networks")
+    checkpoint = tf.train.get_checkpoint_state("saved_networks/"+scene_name)
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(session, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)

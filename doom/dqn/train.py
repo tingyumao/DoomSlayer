@@ -86,7 +86,13 @@ def train():
     session = tf.InteractiveSession()
     saver = tf.train.Saver()
     session.run(tf.global_variables_initializer())
-    checkpoint = tf.train.get_checkpoint_state("saved_networks")
+    checkpoint = tf.train.get_checkpoint_state("saved_networks/"+scene_name)
+    # load old trained model
+    if checkpoint and checkpoint.model_checkpoint_path:
+        saver.restore(session, checkpoint.model_checkpoint_path)
+        print("Successfully loaded:", checkpoint.model_checkpoint_path)
+    else:
+        print("Not found old model")
     
     # start training
     eps = INITIAL_EPS
