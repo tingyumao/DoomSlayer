@@ -11,8 +11,8 @@ import time
 def train():
 
     # load game
-    scene_name = "basic"
-    cfg_path = "../../example/scenarios/basic.cfg"
+    scene_name = "roket-basic"
+    cfg_path = "../../example/scenarios/rocket_basic.cfg"
     game = DoomGame()
     game.load_config(cfg_path)
     game.set_screen_format(ScreenFormat.CRCGCB)
