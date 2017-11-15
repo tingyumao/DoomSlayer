@@ -10,24 +10,25 @@ import time
 
 def run():
 
+    # load game
+    scene_name = "basic"
+    cfg_path = "../../example/scenarios/basic.cfg"
+    game = DoomGame()
+    game.load_config(cfg_path)
+    game.set_screen_format(ScreenFormat.CRCGCB)
+    game.set_screen_resolution(ScreenResolution.RES_640X480)
+    #game.set_ticrate(1)
+    game.init()
+
     # set up basic parameters
     ACTIONS_NUM = 8
     INITIAL_EPS = 1.0
     FINAL_EPS = 0.1
     GAMMA = 0.99
     LAST_FRAME_NUM = 1
-    FRAME_REPEAT = 1
+    FRAME_REPEAT = 3
 
     TEST_EPISODE = 20
-
-    # load game
-    scene_name = "simple"
-    cfg_path = "../../example/scenarios/simpler_basic.cfg"
-    game = DoomGame()
-    game.load_config(cfg_path)
-    game.set_screen_format(ScreenFormat.CRCGCB)
-    game.set_screen_resolution(ScreenResolution.RES_640X480)
-    game.init()
 
     # define 8 actions
     shoot = [0, 0, 1]
@@ -83,7 +84,7 @@ def run():
         while not game.is_episode_finished():
             current_state = game.get_state()
             current_frame = current_state.screen_buffer
-            current_frame = preprocess(current_frame.transpose(1,2,0))
+            current_frame = preprocess(current_frame.transpose(1,2,0), (h, w))
             # stack last 4 frames together
             if t == 0:
                 # return a 30x45x3 numpy array

@@ -9,6 +9,15 @@ import random
 import time
 
 def train():
+
+    # load game
+    scene_name = "basic"
+    cfg_path = "../../example/scenarios/basic.cfg"
+    game = DoomGame()
+    game.load_config(cfg_path)
+    game.set_screen_format(ScreenFormat.CRCGCB)
+    game.set_screen_resolution(ScreenResolution.RES_640X480)
+    game.init()
     
     # set up basic parameters
     ACTIONS_NUM = 8
@@ -26,14 +35,6 @@ def train():
     BATCH_SIZE = 64
 
     assert REPLAY_MEMORY <= 25000
-
-    scene_name = "simple"
-    cfg_path = "../../example/scenarios/simpler_basic.cfg"
-    game = DoomGame()
-    game.load_config(cfg_path)
-    game.set_screen_format(ScreenFormat.CRCGCB)
-    game.set_screen_resolution(ScreenResolution.RES_640X480)
-    game.init()
     
     # define 8 actions
     shoot = [0, 0, 1]
@@ -104,7 +105,7 @@ def train():
             current_state = game.get_state()
             current_frame = current_state.screen_buffer # return a numpy array 3xHxW
             # preprocess
-            current_frame = preprocess(current_frame.transpose(1,2,0)) # return a 30x45x3 numpy array
+            current_frame = preprocess(current_frame.transpose(1,2,0), (h, w)) # return a 30x45x3 numpy array
             # accumulate reward
             #episode_total_reward += current_reward
             # stack last 4 frames together
@@ -130,7 +131,7 @@ def train():
             next_store_state = np.zeros_like(current_store_state)
             if not terminal:
                 next_frame = next_state.screen_buffer
-                next_frame = preprocess(next_frame.transpose(1,2,0)) # return a 30x45x1 numpy array
+                next_frame = preprocess(next_frame.transpose(1,2,0), (h, w)) # return a 30x45x1 numpy array
                 next_store_state = next_frame#np.concatenate([current_store_state[:,:,-3:], next_frame], axis=2)
         
             # push into replay cache
@@ -179,14 +180,14 @@ def train():
         print("*"*100)
         print("Finish {} th episode at {} th time steps.".format(e, t))
         all_episode_reward.append(game.get_total_reward())
-        print("Reward in {} th episode: {}".format(e, np.mean(all_episode_reward[-10:])))
+        print("Reward in {} th episode: {}".format(e, np.mean(all_episode_reward[-50:])))
         if batch_loss != None:
             print("Minibatch train loss in {} th episode: {}".format(e, batch_loss))
         print("Size of Replay Cache: {}".format(len(replay_cache)))
         print("*"*100)
-        # save the model every 100 episodes
-        if (e+1)%100 == 0:
-            saver.save(session, 'saved_networks/' + 'doom-dqn' + scene_name, global_step = e+1)
+        # save the model every 1000 episodes
+        if (e+1)%1000 == 0:
+            saver.save(session, 'saved_networks/' + scene_name + '/doom-dqn-' + scene_name, global_step = e+1)
     
 
 if __name__ == "__main__":

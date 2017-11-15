@@ -30,7 +30,7 @@ def bias_variable(shape, name=None):
 #####################################
 #          RL utilities             #
 #####################################
-def preprocess(frame_image):
+def preprocess(frame_image, shape):
     # convert to grayscale
     #frame_gray = cv2.cvtColor(frame_image, cv2.COLOR_BGR2GRAY) # return a 120x160 array
     # crop out the bottom part, eg., [120, 160] ==> [100, 160]
@@ -41,7 +41,8 @@ def preprocess(frame_image):
     #frame_crop = np.expand_dims(frame_crop, axis=2) # return a 120x160x1 array
 
     # resize
-    frame_resize = cv2.resize(frame_image, (45, 30)).astype("float32")
+    h, w = shape
+    frame_resize = cv2.resize(frame_image, (w, h)).astype("float32")
     frame_resize /= 255.0
     
     return frame_resize
