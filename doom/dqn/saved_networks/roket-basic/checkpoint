@@ -1,6 +1,0 @@
-model_checkpoint_path: "doom-dqn-roket-basic-10000"
-all_model_checkpoint_paths: "doom-dqn-roket-basic-6000"
-all_model_checkpoint_paths: "doom-dqn-roket-basic-7000"
-all_model_checkpoint_paths: "doom-dqn-roket-basic-8000"
-all_model_checkpoint_paths: "doom-dqn-roket-basic-9000"
-all_model_checkpoint_paths: "doom-dqn-roket-basic-10000"
