@@ -65,13 +65,15 @@ def train():
     net_cfg["conv2_cfg"] = [3,3,2,8]
     net_cfg["fc_size"] = 128
     net_cfg["action_num"] = ACTIONS_NUM
-    with tf.variable_scope("q_network"):
+    with tf.variable_scope("q_network", reuse=True):
         net = QNetwork(net_cfg)
-    
+
     # define loss
     q_values = net(states_ph)
     q_s_a = tf.reduce_sum(q_values * actions_ph, axis=1)
     loss = tf.reduce_mean(tf.square(ys_ph - q_s_a))
+    
+    target_q_values = q_values
     
     # define train_step
     train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss)
@@ -158,11 +160,9 @@ def train():
                 # get yj
                 batch_yjs = []
                 batch_qj1 = session.run(q_values, feed_dict={states_ph: batch_sj1})
-                for i in range(BATCH_SIZE):
-                    if batch_terminal[i]:
-                        batch_yjs.append(batch_reward[i])
-                    else:
-                        batch_yjs.append(batch_reward[i] + GAMMA * np.max(batch_qj1[i]))
+                best_actions = np.argmax(batch_qj1, axis=1)
+                target_batch_qj1 = session.run(target_q_values, feed_dict={states_ph: batch_sj1})
+                batch_yjs = batch_reward + np.invert(batch_terminal).astype(np.float32) * GAMMA * target_batch_qj1[np.arange(BATCH_SIZE),best_actions]
                         
                 # train_step: update networks
                 batch_loss, _ = session.run([loss, train_step],
