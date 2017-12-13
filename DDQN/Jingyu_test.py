@@ -11,10 +11,8 @@ from vizdoom import Button
 from vizdoom import GameVariable
 from vizdoom import ScreenFormat
 from vizdoom import ScreenResolution
-from ddqn import networks
-
-# from networks import Qnetwork
-from utils import preprocess, e_greedy_select
+from .ddqn import networks
+from .ddqn.utils import  preprocess, e_greedy_select
 
 ACTIONS_NUM = 8
 INITIAL_EPS = 1.0
