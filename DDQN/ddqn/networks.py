@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 class QNetwork(object):
     """
     Conv_Net + FC_Net
@@ -17,55 +18,52 @@ class QNetwork(object):
     output(size is the same as the action set)
     
     """
+
     def __init__(self, config):
-        self.conv1_cfg = config.get("conv1_cfg", [8,8,4,16]) # kernel width, kernel height, stride, filters
-        self.conv2_cfg = config.get("conv2_cfg", [4,4,2,32])
+        self.conv1_cfg = config.get("conv1_cfg", [8, 8, 4, 16])  # kernel width, kernel height, stride, filters
+        self.conv2_cfg = config.get("conv2_cfg", [4, 4, 2, 32])
         self.fc_size = config.get("fc_size", 256)
         self.action_num = config.get("action_num", 3)
+        self.branch_fc1 = config.get("branch_fc1", 32)
+        self.branch_fc2 = config.get("branch_fc2", 64)
         # define weight and bias for the last FC layer which is followed by ReLU. 
-        #self.fc_w = weight_variable([flatten_size, 256])
-        #self.fc_b = bias_variable([256,])
-        
+        # self.fc_w = weight_variable([flatten_size, 256])
+        # self.fc_b = bias_variable([256,])
+
         # define weight and bias for the output. 
-        #self.fc_w = weight_variable([256, action_num])
-        #self.fc_b = bias_variable([action_num,])
-    
-    def __call__(self, state):
-        
+        # self.fc_w = weight_variable([256, action_num])
+        # self.fc_b = bias_variable([action_num,])
+
+    def __call__(self, state, health):
+        # First we deal with the input state
         # conv1
-        #in_channels = tf.shape(state)[2]
+        # in_channels = tf.shape(state)[2]
         filter_h, filter_w, strides, out_channels = self.conv1_cfg
         h = tf.layers.conv2d(state, out_channels, [filter_h, filter_w],
-                             strides=[strides, strides], padding="valid",data_format='channels_last',name="conv1")
+                             strides=[strides, strides], padding="valid", data_format='channels_last', name="conv1")
         h = tf.nn.relu(h)
-        
+
         # conv2
-        #in_channels = tf.shape(h)[2]
+        # in_channels = tf.shape(h)[2]
         filter_h, filter_w, strides, out_channels = self.conv2_cfg
         h = tf.layers.conv2d(h, out_channels, [filter_h, filter_w],
-                             strides=[strides, strides], padding="valid",data_format='channels_last',name="conv2")
+                             strides=[strides, strides], padding="valid", data_format='channels_last', name="conv2")
         h = tf.nn.relu(h)
-        
+
         # flatten
-        h = tf.contrib.layers.flatten(h) # input: h[batch_size, h, w, channels], output: [batch_size, k]
-        
+        h = tf.contrib.layers.flatten(h)  # input: h[batch_size, h, w, channels], output: [batch_size, k]
+
+        # Next we deal with the input game variables
+        health_fc1 = tf.contrib.layers.fully_connected(health, self.branch_fc1)
+        health_fc2 = tf.contrib.layers.fully_connected(health_fc1, self.branch_fc2)
+
+        # concatenate flattened vector with health value
+        concat = tf.concat([h, health_fc2], axis=1)
+
         # fc layer
-        h = tf.contrib.layers.fully_connected(h, self.fc_size) # the default activation function is ReLU.
-        
+        concat = tf.contrib.layers.fully_connected(concat, self.fc_size)  # the default activation function is ReLU.
+
         # output layer
-        out = tf.contrib.layers.fully_connected(h, self.action_num, activation_fn=None)
-        
+        out = tf.contrib.layers.fully_connected(concat, self.action_num, activation_fn=None)
+
         return out
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
