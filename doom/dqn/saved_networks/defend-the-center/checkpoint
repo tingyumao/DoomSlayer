@@ -1,0 +1,2 @@
+model_checkpoint_path: "doom-dqn-defend-the-center-100"
+all_model_checkpoint_paths: "doom-dqn-defend-the-center-100"

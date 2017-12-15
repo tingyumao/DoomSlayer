@@ -14,7 +14,8 @@ import random
 import time
 
 game = DoomGame()
-game.load_config("../scenarios/rocket_basic.cfg")
+game.load_config("../scenarios/deadly_corridor.cfg")
+game.set_mode(Mode.SPECTATOR) 
 #game.set_window_visible(False)
 game.init()
 
@@ -23,7 +24,7 @@ left = [1, 0, 0]
 right = [0, 1, 0]
 actions = [shoot, left, right]
 
-episodes = 10
+episodes = 1
 for i in range(episodes):
     game.new_episode()
     while not game.is_episode_finished():

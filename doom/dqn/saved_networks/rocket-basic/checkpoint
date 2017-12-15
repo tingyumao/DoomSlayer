@@ -1,0 +1,6 @@
+model_checkpoint_path: "doom-dqn-rocket-basic-5000"
+all_model_checkpoint_paths: "doom-dqn-rocket-basic-1000"
+all_model_checkpoint_paths: "doom-dqn-rocket-basic-2000"
+all_model_checkpoint_paths: "doom-dqn-rocket-basic-3000"
+all_model_checkpoint_paths: "doom-dqn-rocket-basic-4000"
+all_model_checkpoint_paths: "doom-dqn-rocket-basic-5000"

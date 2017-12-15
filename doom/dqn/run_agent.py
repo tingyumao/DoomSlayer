@@ -11,26 +11,34 @@ import time
 def run():
 
     # load game
-    scene_name = "roket-basic"
-    cfg_path = "../../example/scenarios/rocket_basic.cfg"
+    scene_name = "deadly-corridor"
+    cfg_path = "../../example/scenarios/deadly_corridor.cfg"
     game = DoomGame()
     game.load_config(cfg_path)
     game.set_screen_format(ScreenFormat.CRCGCB)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
-    #game.set_ticrate(1)
     game.init()
-
+    
     # set up basic parameters
-    ACTIONS_NUM = 8
+    NUM_GAME_VARS = 1
+    ACTIONS_NUM = 7
     INITIAL_EPS = 1.0
     FINAL_EPS = 0.1
     GAMMA = 0.99
-    LAST_FRAME_NUM = 1
-    FRAME_REPEAT = 3
+    LAST_FRAME_NUM = 4
+    FRAME_REPEAT = 4
+    #MAX_TRAIN_STEP = 3000000
+    OBSERVE = 3000
+    REPLAY_MEMORY = 10000
+    MAX_TRAIN_EPISODE = 5000
 
-    TEST_EPISODE = 20
+    LEARNING_RATE = 0.001
+    BATCH_SIZE = 128
 
+    assert REPLAY_MEMORY <= 25000
+    
     # define 8 actions
+    """
     shoot = [0, 0, 1]
     left = [1, 0, 0]
     right = [0, 1, 0]
@@ -39,8 +47,12 @@ def run():
     left_right = [1, 1, 0]
     shoot_left_right = [1, 1, 1]
     nothing = [0, 0, 0]
-    actions = [shoot, left, right, shoot_left, shoot_right, left_right, shoot_left_right, nothing]
-
+    """
+    actions = [[0]*ACTIONS_NUM for i in range(ACTIONS_NUM)]
+    for i in range(ACTIONS_NUM):
+        actions[i][i] = 1
+    #actions = [shoot, left, right, shoot_left, shoot_right, nothing]#, left_right, shoot_left_right, nothing]
+    
     # define the placeholders for states, used in one-pass forward
     h, w, channels = 30, 45, 3
     states_ph = tf.placeholder(tf.float32, shape=(None, h, w, channels*LAST_FRAME_NUM))
@@ -72,7 +84,7 @@ def run():
     checkpoint = tf.train.get_checkpoint_state("saved_networks/"+scene_name)
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(session, checkpoint.model_checkpoint_path)
-        print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        print("Successfully to added:", checkpoint.model_checkpoint_path)
     else:
         print("Failed to load model. Please check if the old model exists")
         return

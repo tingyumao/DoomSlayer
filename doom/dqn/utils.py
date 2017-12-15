@@ -44,14 +44,19 @@ def preprocess(frame_image, shape):
     h, w = shape
     frame_resize = cv2.resize(frame_image, (w, h)).astype("float32")
     frame_resize /= 255.0
+    frame_gray = cv2.cvtColor(frame_resize, cv2.COLOR_BGR2GRAY)
+    frame_gray = np.expand_dims(frame_gray, axis=-1)
     
-    return frame_resize
+    return frame_gray
 
 def e_greedy_select(actions, qs, eps):
     action_onehot = [0.0 for i in range(len(actions))]
     # qs are q-value for each actions at current state
     max_actions = [a for i, a in enumerate(actions) if qs[i]==max(qs)]
 
+    if len(max_actions) == 0:
+        print("not found max action")
+        print(qs)
     assert len(max_actions) > 0
     
     if random.random() < eps:
