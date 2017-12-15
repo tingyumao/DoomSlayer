@@ -193,71 +193,31 @@ class DQNPrioritizedReplay:
     def _build_net(self):
 
         def build_cnn_layers(s, trainable):
-            h = tf.layers.conv2d(s, 16, [8, 8], strides=[4, 4], padding="valid",data_format='channels_last',name="conv1", trainable=trainable)
-            h = tf.nn.relu(h)
+            h = tf.layers.conv2d(s, 16, [5, 5],data_format='channels_last',name="conv1", trainable=trainable)
+            h = tf.nn.max_pool(h, ksize = [1,2,2,1],strides = [1,2,2,1], padding = 'SAME')
 
             #print(h)
         
-            h = tf.layers.conv2d(h, 32, [4, 4], strides=[2, 2], padding="valid",data_format='channels_last',name="conv2", trainable=trainable)
+            h = tf.layers.conv2d(h, 32, [3, 3],data_format='channels_last',name="conv2", trainable=trainable)
+            h = tf.nn.max_pool(h, ksize = [1,2,2,1],strides = [1,2,2,1], padding = 'SAME')
             h = tf.nn.relu(h)
 
             #print(h)
-            
-            # flatten
-            h = tf.contrib.layers.flatten(h) # input: h[batch_size, h, w, channels], output: [batch_size, k]
-            
-            #print(h)
+            h = tf.layers.conv2d(h, 64, [3, 3],data_format='channels_last',name="conv3", trainable=trainable)
+            h = tf.nn.max_pool(h, ksize = [1,2,2,1],strides = [1,2,2,1], padding = 'SAME')
+            h = tf.nn.relu(h)
+
+            h = tf.contrib.layers.flatten(h)
 
             # fc layer
-            h = tf.contrib.layers.fully_connected(h, 512, trainable=trainable) # the default activation function is ReLU.
-            
+            h = tf.contrib.layers.fully_connected(h, 200, trainable=trainable) # the default activation function is ReLU.
+            h = tf.contrib.layers.fully_connected(h,10, trainable=trainable)
             # output layer
             out = tf.contrib.layers.fully_connected(h, self.n_actions, activation_fn=None, trainable=trainable)
             
             return out
 
-
-
-        def build_layers(s, c_names, n_l1, w_initializer, b_initializer, trainable):
-            with tf.variable_scope('l1'):
-                w1 = tf.get_variable('w1', [self.n_features, n_l1], initializer=w_initializer, collections=c_names, trainable=trainable)
-                b1 = tf.get_variable('b1', [1, n_l1], initializer=b_initializer, collections=c_names,  trainable=trainable)
-                l1 = tf.nn.relu(tf.matmul(s, w1) + b1)
-
-            with tf.variable_scope('l2'):
-                w2 = tf.get_variable('w2', [n_l1, self.n_actions], initializer=w_initializer, collections=c_names,  trainable=trainable)
-                b2 = tf.get_variable('b2', [1, self.n_actions], initializer=b_initializer, collections=c_names,  trainable=trainable)
-                out = tf.matmul(l1, w2) + b2
-            return out
-
-        # ------------------ build evaluate_net ------------------
-        """
-        self.s = tf.placeholder(tf.float32, [None, self.n_features], name='s')  # input
-        self.q_target = tf.placeholder(tf.float32, [None, self.n_actions], name='Q_target')  # for calculating loss
-        if self.prioritized:
-            self.ISWeights = tf.placeholder(tf.float32, [None, 1], name='IS_weights')
-        with tf.variable_scope('eval_net'):
-            c_names, n_l1, w_initializer, b_initializer = \
-                ['eval_net_params', tf.GraphKeys.GLOBAL_VARIABLES], 20, \
-                tf.random_normal_initializer(0., 0.3), tf.constant_initializer(0.1)  # config of layers
-
-            self.q_eval = build_layers(self.s, c_names, n_l1, w_initializer, b_initializer, True)
-
-        with tf.variable_scope('loss'):
-            if self.prioritized:
-                self.abs_errors = tf.reduce_sum(tf.abs(self.q_target - self.q_eval), axis=1)    # for updating Sumtree
-                self.loss = tf.reduce_mean(self.ISWeights * tf.squared_difference(self.q_target, self.q_eval))
-            else:
-                self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
-        with tf.variable_scope('train'):
-            self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
-
-        # ------------------ build target_net ------------------
-        self.s_ = tf.placeholder(tf.float32, [None, self.n_features], name='s_')    # input
-        with tf.variable_scope('target_net'):
-            c_names = ['target_net_params', tf.GraphKeys.GLOBAL_VARIABLES]
-            self.q_next = build_layers(self.s_, c_names, n_l1, w_initializer, b_initializer, False)
-        """
+        
         self.s = tf.placeholder(tf.float32, [None, self.height, self.width, self.n_features], name='s')  # input
         self.q_target = tf.placeholder(tf.float32, [None, self.n_actions], name='Q_target')  # for calculating loss
         self.ISWeights = tf.placeholder(tf.float32, [None, 1], name='IS_weights')
