@@ -32,18 +32,19 @@ def bias_variable(shape, name=None):
 #####################################
 def preprocess(frame_image, shape):
     # convert to grayscale
-    #frame_gray = cv2.cvtColor(frame_image, cv2.COLOR_BGR2GRAY) # return a 120x160 array
+    frame_gray = cv2.cvtColor(frame_image, cv2.COLOR_BGR2GRAY) # return a 120x160 array
     # crop out the bottom part, eg., [120, 160] ==> [100, 160]
     #H, W = frame_gray.shape
     #H_crop = int(H*5/6.0)
     
     #frame_crop = frame_gray[:H_crop, :]/255.0
-    #frame_crop = np.expand_dims(frame_crop, axis=2) # return a 120x160x1 array
+    #frame_gray = np.expand_dims(frame_gray, axis=2) # return a 120x160x1 array
 
     # resize
     h, w = shape
-    frame_resize = cv2.resize(frame_image, (w, h)).astype("float32")
+    frame_resize = cv2.resize(frame_gray, (w, h)).astype("float32")
     frame_resize /= 255.0
+    frame_resize = np.expand_dims(frame_resize, axis=2) # return a 120x160x1 array
     
     return frame_resize
 

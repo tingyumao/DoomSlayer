@@ -25,7 +25,7 @@ from utils import preprocess
 ACTIONS_NUM = 8
 INITIAL_EPS = 1.0
 FINAL_EPS = 0.1
-GAMMA = 0.99
+GAMMA = 0.9
 LAST_FRAME_NUM = 1
 FRAME_REPEAT = 8
 OBSERVE = 3000
@@ -80,9 +80,11 @@ sess = tf.Session()
 #        e_greedy_increment=0.00005, sess=sess, prioritized=False,
 #    )
 
-with tf.variable_scope('DQN_with_prioritized_replay'):
+img_w, img_h = 120, 90
+
+ h tf.variable_scope('DQN_with_prioritized_replay'):
     RL_prio = DQNPrioritizedReplay(
-        n_actions=8, width=84, height=64, n_features=3, memory_size=MEMORY_SIZE,
+        n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
         e_greedy_increment=0.00005, sess=sess, prioritized=True, output_graph=True)
 sess.run(tf.global_variables_initializer())
 
@@ -101,7 +103,7 @@ def train(RL):
         while True:
             # env.render()
             raw_state = game.get_state()
-            observation = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (64, 84))
+            observation = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
             action = RL.choose_action(observation)
             reward = game.make_action(actions[action], FRAME_REPEAT)
 
@@ -111,7 +113,7 @@ def train(RL):
                 observation_ = np.zeros_like(observation)
             else:    
                 raw_state = game.get_state()
-                observation_ = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (64, 84))
+                observation_ = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
             #observation_, reward, done, info = env.step(action)
 
             #if done: reward = 10

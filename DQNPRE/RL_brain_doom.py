@@ -140,9 +140,9 @@ class DQNPrioritizedReplay:
             width,
             height,
             n_features,
-            learning_rate=0.005,
-            reward_decay=0.9,
-            e_greedy=0.9,
+            learning_rate=0.00005,
+            reward_decay=0.99,
+            e_greedy=0.99,
             replace_target_iter=500,
             memory_size=10000,
             batch_size=32,
@@ -215,6 +215,26 @@ class DQNPrioritizedReplay:
             
             return out
 
+        def build_cnn_fc_layers(s, v, trainable):
+            # image
+            h_img = tf.layers.conv2d(s, 16, [8, 8], strides=[4, 4], padding="valid",data_format='channels_last',name="conv1", trainable=trainable)
+            h_img = tf.nn.relu(h_img)
+        
+            h_img = tf.layers.conv2d(h_img, 32, [4, 4], strides=[2, 2], padding="valid",data_format='channels_last',name="conv2", trainable=trainable)
+            h_img = tf.nn.relu(h_img)
+
+            # flatten
+            h_img = tf.contrib.layers.flatten(h_img) # input: h[batch_size, h, w, channels], output: [batch_size, k]
+            h_img = tf.contrib.layers.fully_connected(h_img, 512, trainable=trainable) # the default activation function is ReLU.
+
+            # game variables
+            h_var = tf.contrib.layers.fully_connected(v, 512, trainable=trainable) # the default activation function is ReLU.
+
+            # concatenate
+            h = tf.concat([h_img, h_var], axis=1, name="final_concat")
+            out = tf.contrib.layers.fully_connected(h, self.n_actions, activation_fn=None, trainable=trainable)
+
+            return out
 
 
         def build_layers(s, c_names, n_l1, w_initializer, b_initializer, trainable):
@@ -258,11 +278,13 @@ class DQNPrioritizedReplay:
             self.q_next = build_layers(self.s_, c_names, n_l1, w_initializer, b_initializer, False)
         """
         self.s = tf.placeholder(tf.float32, [None, self.height, self.width, self.n_features], name='s')  # input
+        self.v = tf.placeholder(tf.float32, [None, 2], name='v')  # input
         self.q_target = tf.placeholder(tf.float32, [None, self.n_actions], name='Q_target')  # for calculating loss
         self.ISWeights = tf.placeholder(tf.float32, [None, 1], name='IS_weights')
 
         with tf.variable_scope("eval_net"):
             self.q_eval = build_cnn_layers(self.s, trainable=True)
+            #self.q_eval = build_cnn_fc_layers(self.s, self.v, trainable=True)
 
         with tf.variable_scope("loss"):
             self.abs_errors = tf.reduce_sum(tf.abs(self.q_target - self.q_eval), axis=1)    # for updating Sumtree
@@ -272,8 +294,10 @@ class DQNPrioritizedReplay:
             self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
         self.s_ = tf.placeholder(tf.float32, [None, self.height, self.width, self.n_features], name='s_')    # input for next state
+        self.v_ = tf.placeholder(tf.float32, [None, 2], name='v_')  # input
         with tf.variable_scope("target_net"):
-            self.q_next = build_cnn_layers(self.s, trainable=False)
+            self.q_next = build_cnn_layers(self.s_, trainable=False)
+            #self.q_next = build_cnn_fc_layers(self.s_, self.v_, trainable=False)
 
 
 
@@ -307,7 +331,9 @@ class DQNPrioritizedReplay:
     def learn(self):
         if self.learn_step_counter % self.replace_target_iter == 0:
             self.sess.run(self.replace_target_op)
-            print('\ntarget_params_replaced\n')
+            #self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
+            print_loss = self.cost_his[-1] if len(self.cost_his)>0 else "no available"
+            print('\ntarget_params_replaced. training loss: {}. epsilon: {}\n'.format(print_loss, self.epsilon))
 
         if self.prioritized:
             tree_idx, batch_memory, ISWeights = self.memory.sample(self.batch_size)
