@@ -93,7 +93,8 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
     """
     epsilon = 0.01  # small amount to avoid zero priority
     alpha = 0.6  # [0~1] convert the importance of TD error to priority
-    beta = 0.4  # importance-sampling, from initial value increasing to 1
+    #beta = 0.4  # importance-sampling, from initial value increasing to 1
+    beta = 0.8
     beta_increment_per_sampling = 0.001
     abs_err_upper = 1.  # clipped abs error
 
@@ -273,7 +274,7 @@ class DQNPrioritizedReplay:
 
         self.s_ = tf.placeholder(tf.float32, [None, self.height, self.width, self.n_features], name='s_')    # input for next state
         with tf.variable_scope("target_net"):
-            self.q_next = build_cnn_layers(self.s, trainable=False)
+            self.q_next = build_cnn_layers(self.s_, trainable=False)
 
 
 
