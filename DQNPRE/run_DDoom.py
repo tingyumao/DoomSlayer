@@ -7,7 +7,7 @@ Using:
 Tensorflow: 1.0
 gym: 0.8.0
 """
-
+import os
 from vizdoom import DoomGame
 from vizdoom import Button
 from vizdoom import GameVariable
@@ -15,7 +15,7 @@ from vizdoom import ScreenFormat
 from vizdoom import ScreenResolution
 from vizdoom import Mode
 
-from RL_brain_doom import DQNPrioritizedReplay
+from RL_brain_ddoom import DDQNPrioritizedReplay
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
@@ -82,8 +82,8 @@ sess = tf.Session()
 
 img_w, img_h = 120, 90
 
-with tf.variable_scope('DQN_with_prioritized_replay'):
-    RL_prio = DQNPrioritizedReplay(
+with tf.variable_scope('DDQN_with_prioritized_replay'):
+    RL_prio = DDQNPrioritizedReplay(
         n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
         e_greedy_increment=0.00005, sess=sess, prioritized=True, output_graph=True)
 sess.run(tf.global_variables_initializer())
@@ -103,17 +103,27 @@ def train(RL):
         while True:
             # env.render()
             raw_state = game.get_state()
-            observation = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
+            img = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
+            angle = game.get_game_variable(GameVariable.ANGLE)
+            health = game.get_game_variable(GameVariable.HEALTH)
+            measures = np.asarray([((angle+90)%360)/360., health / 100.]).astype("float32")
+            observation = [img, measures]
+
             action = RL.choose_action(observation)
             reward = game.make_action(actions[action], FRAME_REPEAT)
 
             episode_reward += reward
 
             if game.is_episode_finished():
-                observation_ = np.zeros_like(observation)
+                observation_ = observation #np.zeros_like(observation) How to define terminal state
             else:    
                 raw_state = game.get_state()
-                observation_ = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
+                #observation_ = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
+                img = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
+                angle = game.get_game_variable(GameVariable.ANGLE)
+                health = game.get_game_variable(GameVariable.HEALTH)
+                measures = np.asarray([((angle+90)%360)/360., health / 100.]).astype("float32")
+                observation_ = [img, measures]
             #observation_, reward, done, info = env.step(action)
 
             #if done: reward = 10
@@ -131,6 +141,14 @@ def train(RL):
 
             observation = observation_
             total_steps += 1
+
+        if (i_episode + 1) % 100 == 0 and total_steps>MEMORY_SIZE:
+            print('Saving models...')
+            CHECKPOINTS_PATH = "./DDoom"
+            if not os.path.exists(CHECKPOINTS_PATH):
+                os.mkdir(CHECKPOINTS_PATH)
+            saver.save(sess, CHECKPOINTS_PATH, global_step=total_steps + 1)
+
     return np.vstack((episodes, steps))
 
 #his_natural = train(RL_natural)
@@ -138,7 +156,7 @@ his_prio = train(RL_prio)
 
 # compare based on first success
 #plt.plot(his_natural[0, :], his_natural[1, :] - his_natural[1, 0], c='b', label='natural DQN')
-plt.plot(his_prio[0, :], his_prio[1, :] - his_prio[1, 0], c='r', label='DQN with prioritized replay')
+plt.plot(his_prio[0, :], his_prio[1, :] - his_prio[1, 0], c='r', label='DDQN with prioritized replay')
 plt.legend(loc='best')
 plt.ylabel('total training time')
 plt.xlabel('episode')

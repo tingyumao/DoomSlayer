@@ -14,7 +14,7 @@ import random
 import time
 
 game = DoomGame()
-game.load_config("../scenarios/deadly_corridor.cfg")
+game.load_config("../scenarios/defend_the_line.cfg")
 game.set_mode(Mode.SPECTATOR) 
 #game.set_window_visible(False)
 game.init()
@@ -31,10 +31,13 @@ for i in range(episodes):
         state = game.get_state()
         img = state.screen_buffer # return a numpy array 3x240x320
         misc = state.game_variables
+        angle = game.get_game_variable(GameVariable.ANGLE)
+        health = game.get_game_variable(GameVariable.HEALTH)
+        print("angle = {}, health = {}".format(angle, health))
         # make_action take a distribution as input? So it also do the 
         # e-greedy selection inside?
         reward = game.make_action(random.choice(actions))
         print("\treward:", reward)
-        time.sleep(0.02)
+        time.sleep(0.05)
     print("Result:", game.get_total_reward())
     time.sleep(2)

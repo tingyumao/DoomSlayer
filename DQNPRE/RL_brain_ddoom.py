@@ -133,7 +133,7 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
             self.tree.update(ti, p)
 
 
-class DQNPrioritizedReplay:
+class DDQNPrioritizedReplay:
     def __init__(
             self,
             n_actions,
@@ -171,7 +171,9 @@ class DQNPrioritizedReplay:
         self._build_net()
         t_params = tf.get_collection('target_net_params')
         e_params = tf.get_collection('eval_net_params')
-        self.replace_target_op = [tf.assign(t, e) for t, e in zip(t_params, e_params)]
+        self.swap_target_op = [tf.assign(t, e) for t, e in zip(t_params, e_params)]
+        self.t_params = t_params
+        self.e_params = e_params
 
         if self.prioritized:
             self.memory = Memory(capacity=memory_size)
@@ -221,10 +223,10 @@ class DQNPrioritizedReplay:
             # image
             h_img = tf.layers.conv2d(s, 16, [5, 5], strides=[4, 4], padding="valid",data_format='channels_last',name="conv1", trainable=trainable)
             h_img = tf.nn.relu(h_img)
-            h_img = tf.layers.max_pooling2d(h_img, 2)
+            h_img = tf.layers.max_pooling2d(h_img, 2, 2)
             h_img = tf.layers.conv2d(h_img, 32, [3, 3], strides=[2, 2], padding="valid",data_format='channels_last',name="conv2", trainable=trainable)
             h_img = tf.nn.relu(h_img)
-
+            h_img = tf.layers.max_pooling2d(h_img, 2, 2)
             # flatten
             h_img = tf.contrib.layers.flatten(h_img) # input: h[batch_size, h, w, channels], output: [batch_size, k]
             h_img = tf.contrib.layers.fully_connected(h_img, 512, trainable=trainable) # the default activation function is ReLU.
@@ -285,8 +287,8 @@ class DQNPrioritizedReplay:
         self.ISWeights = tf.placeholder(tf.float32, [None, 1], name='IS_weights')
 
         with tf.variable_scope("eval_net"):
-            self.q_eval = build_cnn_layers(self.s, trainable=True)
-            #self.q_eval = build_cnn_fc_layers(self.s, self.v, trainable=True)
+            #self.q_eval = build_cnn_layers(self.s, trainable=True)
+            self.q_eval = build_cnn_fc_layers(self.s, self.v, trainable=True)
 
         with tf.variable_scope("loss"):
             self.abs_errors = tf.reduce_sum(tf.abs(self.q_target - self.q_eval), axis=1)    # for updating Sumtree
@@ -298,8 +300,8 @@ class DQNPrioritizedReplay:
         self.s_ = tf.placeholder(tf.float32, [None, self.height, self.width, self.n_features], name='s_')    # input for next state
         self.v_ = tf.placeholder(tf.float32, [None, 2], name='v_')  # input
         with tf.variable_scope("target_net"):
-            self.q_next = build_cnn_layers(self.s_, trainable=False)
-            #self.q_next = build_cnn_fc_layers(self.s_, self.v_, trainable=False)
+            #self.q_next = build_cnn_layers(self.s_, trainable=False)
+            self.q_next = build_cnn_fc_layers(self.s_, self.v_, trainable=False)
 
 
 
@@ -322,20 +324,32 @@ class DQNPrioritizedReplay:
             self.memory_counter += 1
 
     def choose_action(self, observation):
-        observation = observation[np.newaxis, :]
+        #observation = observation[np.newaxis, :]
         if np.random.uniform() < self.epsilon:
-            actions_value = self.sess.run(self.q_eval, feed_dict={self.s: observation})
+            actions_value = self.sess.run(self.q_eval, feed_dict={self.s: observation[0][np.newaxis, :], self.v: observation[1][np.newaxis, :]})
             action = np.argmax(actions_value)
         else:
             action = np.random.randint(0, self.n_actions)
         return action
 
     def learn(self):
+        #def swap_model_parameters(sess):
+            #param1 = [v for v in tf.trainable_variables() if v.name.startswith('q_forward')]
+            #param1 = sorted(param1, key=lambda v: v.name)
+            #param2 = [v for v in tf.trainable_variables() if v.name.startswith('q_target')]
+            #param2 = sorted(param2, key=lambda v: v.name)
+            #update_ops = []
+            #for v1, v2 in zip(param1, param2):
+            #    temp_op = v2.assign(v1)
+            #    update_ops.append(temp_op)
+            #sess.run(update_ops)
+
         if self.learn_step_counter % self.replace_target_iter == 0:
-            self.sess.run(self.replace_target_op)
+            self.sess.run(self.swap_target_op)
+            #swap_model_parameters(self.sess)
             #self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
             print_loss = self.cost_his[-1] if len(self.cost_his)>0 else "no available"
-            print('\ntarget_params_replaced. training loss: {}. epsilon: {}\n'.format(print_loss, self.epsilon))
+            print('\ntarget_params_and_eval_parms_swapped. training loss: {}. epsilon: {}\n'.format(print_loss, self.epsilon))
 
         if self.prioritized:
             tree_idx, batch_memory, ISWeights = self.memory.sample(self.batch_size)
@@ -344,10 +358,15 @@ class DQNPrioritizedReplay:
             batch_memory = self.memory[sample_index, :]
 
  
-        feed_s = [x[0] for x in batch_memory]
+        feed_s = [x[0][0] for x in batch_memory]
         feed_s = np.stack(feed_s, axis=0)
-        feed_s_ = [x[3] for x in batch_memory]
+        feed_v = [x[0][1] for x in batch_memory]
+        feed_v = np.stack(feed_v, axis=0)
+
+        feed_s_ = [x[3][0] for x in batch_memory]
         feed_s_ = np.stack(feed_s_, axis=0)
+        feed_v_ = [x[3][1] for x in batch_memory]
+        feed_v_ = np.stack(feed_v_, axis=0)
         # evaluate q value for next state       
         #q_next, q_eval = self.sess.run(
         #        [self.q_next, self.q_eval],
@@ -355,8 +374,8 @@ class DQNPrioritizedReplay:
         #                   self.s: batch_memory[:, :self.n_features]})
         q_next, q_eval = self.sess.run(
                 [self.q_next, self.q_eval],
-                feed_dict={self.s_: feed_s_,
-                           self.s: feed_s})
+                feed_dict={self.s_: feed_s_, self.v_: feed_v_,
+                           self.s: feed_s, self.v: feed_v,})
 
         q_target = q_eval.copy()
         batch_index = np.arange(self.batch_size, dtype=np.int32)
@@ -366,16 +385,19 @@ class DQNPrioritizedReplay:
         reward = [x[2] for x in batch_memory]#batch_memory[:, 2]
 
         # DQN
-        q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
+        #q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
 
         # DDQN
-        
+        q_target[batch_index, eval_act_index] = reward + self.gamma * q_next[batch_index, np.argmax(q_eval, axis=1)]
+
 
         if self.prioritized:
-            feed_s = [x[0] for x in batch_memory]
+            feed_s = [x[0][0] for x in batch_memory]
             feed_s = np.stack(feed_s, axis=0)
+            feed_v = [x[0][1] for x in batch_memory]
+            feed_v = np.stack(feed_v, axis=0)
             _, abs_errors, self.cost = self.sess.run([self._train_op, self.abs_errors, self.loss],
-                                         feed_dict={self.s: feed_s,
+                                         feed_dict={self.s: feed_s, self.v: feed_v,
                                                     self.q_target: q_target,
                                                     self.ISWeights: ISWeights})
             self.memory.batch_update(tree_idx, abs_errors)     # update priority
@@ -388,3 +410,11 @@ class DQNPrioritizedReplay:
 
         self.epsilon = self.epsilon + self.epsilon_increment if self.epsilon < self.epsilon_max else self.epsilon_max
         self.learn_step_counter += 1
+
+
+    def play(self, observation):
+        q_eval = self.sess.run(self.q_eval, feed_dict={self.s: observation[0], self.v: observation[1]})
+        q_eval = np.squeeze(q_eval)
+        return np.argmax(q_eval)
+
+
