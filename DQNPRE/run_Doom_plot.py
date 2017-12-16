@@ -15,7 +15,7 @@ from vizdoom import ScreenFormat
 from vizdoom import ScreenResolution
 from vizdoom import Mode
 
-from RL_brain_doom import DQNPrioritizedReplay
+from RL_brain_doom_plot import DQNPrioritizedReplay
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
