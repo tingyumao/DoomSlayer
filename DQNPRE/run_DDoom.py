@@ -27,7 +27,7 @@ INITIAL_EPS = 1.0
 FINAL_EPS = 0.1
 GAMMA = 0.9
 LAST_FRAME_NUM = 1
-FRAME_REPEAT = 8
+FRAME_REPEAT = 4
 OBSERVE = 3000
 REPLAY_MEMORY = 10000
 MAX_TRAIN_EPISODE = 10000
@@ -88,7 +88,7 @@ img_w, img_h = 120, 90
 
 with tf.variable_scope('DDQN_with_prioritized_replay'):
     RL_prio = DDQNPrioritizedReplay(
-        n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
+        n_actions=8, width=img_w, height=img_h, n_features=3, memory_size=MEMORY_SIZE, batch_size=64,
         e_greedy_increment=0.00001, sess=sess, prioritized=True, output_graph=True)
 
 saver = tf.train.Saver()
@@ -114,7 +114,7 @@ def train(RL):
             img = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
             angle = game.get_game_variable(GameVariable.ANGLE)
             health = game.get_game_variable(GameVariable.HEALTH)
-            measures = np.asarray([((angle+90)%360)/360., health / 100.]).astype("float32")
+            measures = np.asarray([((angle+180)%360)/360., health / 100.]).astype("float32")
             observation = [img, measures]
 
             action = RL.choose_action(observation)
@@ -130,7 +130,7 @@ def train(RL):
                 img = preprocess(raw_state.screen_buffer.transpose(1, 2, 0), (img_h, img_w))
                 angle = game.get_game_variable(GameVariable.ANGLE)
                 health = game.get_game_variable(GameVariable.HEALTH)
-                measures = np.asarray([((angle+90)%360)/360., health / 100.]).astype("float32")
+                measures = np.asarray([((angle+180)%360)/360., health / 100.]).astype("float32")
                 observation_ = [img, measures]
             #observation_, reward, done, info = env.step(action)
 
@@ -164,12 +164,12 @@ his_prio = train(RL_prio)
 
 # compare based on first success
 #plt.plot(his_natural[0, :], his_natural[1, :] - his_natural[1, 0], c='b', label='natural DQN')
-plt.plot(his_prio[0, :], his_prio[1, :] - his_prio[1, 0], c='r', label='DDQN with prioritized replay')
-plt.legend(loc='best')
-plt.ylabel('total training time')
-plt.xlabel('episode')
-plt.grid()
-plt.show()
+#plt.plot(his_prio[0, :], his_prio[1, :] - his_prio[1, 0], c='r', label='DDQN with prioritized replay')
+#plt.legend(loc='best')
+#plt.ylabel('total training time')
+#plt.xlabel('episode')
+#plt.grid()
+#plt.show()
 
 game.close()
 
