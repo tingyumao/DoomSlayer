@@ -46,6 +46,8 @@ game.set_render_hud(False)
 game.set_render_crosshair(False)
 game.set_render_weapon(False)
 
+game.set_window_visible(False)
+
 # Initialize the game window
 game.init()
 
@@ -83,9 +85,12 @@ sess = tf.Session()
 img_w, img_h = 120, 90
 
 with tf.variable_scope('DDQN_with_prioritized_replay'):
-    RL_prio = DQNPrioritizedReplay(
+    RL_prio = DDQNPrioritizedReplay(
         n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
         e_greedy_increment=0.00005, sess=sess, prioritized=True, output_graph=True)
+
+saver = tf.train.Saver()
+
 sess.run(tf.global_variables_initializer())
 
 # load model
@@ -95,7 +100,7 @@ if checkpoint and checkpoint.model_checkpoint_path:
     print("Successfully loaded:", checkpoint.model_checkpoint_path)
 else:
     print("Failed to load model. Please check if the old model exists")
-    return
+    #return
 
 
 # tf.glorot_normal_initializer
@@ -117,7 +122,7 @@ def train(RL):
             img = np.expand_dims(img, axis=0)
             angle = game.get_game_variable(GameVariable.ANGLE)
             health = game.get_game_variable(GameVariable.HEALTH)
-            measures = np.asarray([(angle+90)%360)/360., health / 100.]).astype("float32")
+            measures = np.asarray([((angle+90)%360)/360., health / 100.]).astype("float32")
             measures = measures[np.newaxis, :]
             action = RL.play([img, measures])
             reward = game.make_action(actions[action], FRAME_REPEAT)

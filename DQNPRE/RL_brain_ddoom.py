@@ -140,10 +140,10 @@ class DDQNPrioritizedReplay:
             width,
             height,
             n_features,
-            learning_rate=0.00005,
+            learning_rate=0.0001,
             reward_decay=0.99,
-            e_greedy=0.99,
-            replace_target_iter=500,
+            e_greedy=0.9,
+            replace_target_iter=1000,
             memory_size=10000,
             batch_size=32,
             e_greedy_increment=None,
@@ -236,6 +236,7 @@ class DDQNPrioritizedReplay:
 
             # concatenate
             h = tf.concat([h_img, h_var], axis=1, name="final_concat")
+
             out = tf.contrib.layers.fully_connected(h, self.n_actions, activation_fn=None, trainable=trainable)
 
             return out
@@ -295,7 +296,8 @@ class DDQNPrioritizedReplay:
             self.loss = tf.reduce_mean(self.ISWeights * tf.squared_difference(self.q_target, self.q_eval))
                 
         with tf.variable_scope("train"):
-            self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
+            #self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
+            self._train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
         self.s_ = tf.placeholder(tf.float32, [None, self.height, self.width, self.n_features], name='s_')    # input for next state
         self.v_ = tf.placeholder(tf.float32, [None, 2], name='v_')  # input

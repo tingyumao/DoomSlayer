@@ -37,8 +37,10 @@ BATCH_SIZE = 64
 
 cfg_path = "./defend_the_line.cfg"
 game = DoomGame()
+#game.set_window_visible(False)
 # Configure game. Other configurations can be found at the .cfg file. The following override.
 game.load_config(cfg_path)
+game.set_window_visible(False)
 # game.set_mode(Mode.SPECTATOR)
 game.set_screen_format(ScreenFormat.CRCGCB)
 game.set_screen_resolution(ScreenResolution.RES_640X480)
@@ -80,22 +82,28 @@ sess = tf.Session()
 #        e_greedy_increment=0.00005, sess=sess, prioritized=False,
 #    )
 
+#saver = tf.train.Saver()
+
 img_w, img_h = 120, 90
 
 with tf.variable_scope('DDQN_with_prioritized_replay'):
     RL_prio = DDQNPrioritizedReplay(
         n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
-        e_greedy_increment=0.00005, sess=sess, prioritized=True, output_graph=True)
+        e_greedy_increment=0.00001, sess=sess, prioritized=True, output_graph=True)
+
+saver = tf.train.Saver()
+# initialize variables
 sess.run(tf.global_variables_initializer())
 
 # tf.glorot_normal_initializer
 #sess.run(tf.glorot_normal_initializer()(tf.global_variables()))
 
 def train(RL):
+    print("start to train...")
     total_steps = 0
     steps = []
     episodes = []
-    for i_episode in range(2000):
+    for i_episode in range(6000):
         #observation = env.reset()
         # Starts a new episode
         game.new_episode()
@@ -147,7 +155,7 @@ def train(RL):
             CHECKPOINTS_PATH = "./DDoom"
             if not os.path.exists(CHECKPOINTS_PATH):
                 os.mkdir(CHECKPOINTS_PATH)
-            saver.save(sess, CHECKPOINTS_PATH, global_step=total_steps + 1)
+            saver.save(sess, CHECKPOINTS_PATH+"/checkpoint", global_step=i_episode + 1)
 
     return np.vstack((episodes, steps))
 
