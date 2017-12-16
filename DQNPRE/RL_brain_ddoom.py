@@ -224,18 +224,18 @@ class DDQNPrioritizedReplay:
             h_img = tf.layers.conv2d(s, 16, [5, 5], strides=[4, 4], padding="valid",data_format='channels_last',name="conv1", trainable=trainable)
             h_img = tf.nn.relu(h_img)
             h_img = tf.layers.max_pooling2d(h_img, 2, 2)
-            h_img = tf.layers.dropout(h_img, rate=0.75)
+            #h_img = tf.layers.dropout(h_img, rate=0.75)
             
             h_img = tf.layers.conv2d(h_img, 32, [3, 3], strides=[2, 2], padding="valid",data_format='channels_last',name="conv2", trainable=trainable)
             h_img = tf.nn.relu(h_img)
             h_img = tf.layers.max_pooling2d(h_img, 2, 2)
-            h_img = tf.layers.dropout(h_img, rate=0.75)
+            #h_img = tf.layers.dropout(h_img, rate=0.75)
             # flatten
             h_img = tf.contrib.layers.flatten(h_img) # input: h[batch_size, h, w, channels], output: [batch_size, k]
-            h_img = tf.contrib.layers.fully_connected(h_img, 256, trainable=trainable) # the default activation function is ReLU.
+            h_img = tf.contrib.layers.fully_connected(h_img, 512, trainable=trainable) # the default activation function is ReLU.
 
             # game variables
-            h_var = tf.contrib.layers.fully_connected(v, 256, trainable=trainable) # the default activation function is ReLU.
+            h_var = tf.contrib.layers.fully_connected(v, 512, trainable=trainable) # the default activation function is ReLU.
 
             # concatenate
             h = tf.concat([h_img, h_var], axis=1, name="final_concat")

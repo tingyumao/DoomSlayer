@@ -42,9 +42,9 @@ def preprocess(frame_image, shape):
 
     # resize
     h, w = shape
-    frame_resize = cv2.resize(frame_image, (w, h)).astype("float32")
+    frame_resize = cv2.resize(frame_gray, (w, h)).astype("float32")
     frame_resize /= 255.0
-    #frame_resize = np.expand_dims(frame_resize, axis=2) # return a 120x160x1 array
+    frame_resize = np.expand_dims(frame_resize, axis=2) # return a 120x160x1 array
     
     return frame_resize
 

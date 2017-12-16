@@ -88,7 +88,7 @@ img_w, img_h = 120, 90
 
 with tf.variable_scope('DDQN_with_prioritized_replay'):
     RL_prio = DDQNPrioritizedReplay(
-        n_actions=8, width=img_w, height=img_h, n_features=3, memory_size=MEMORY_SIZE, batch_size=64,
+        n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
         e_greedy_increment=0.00001, sess=sess, prioritized=True, output_graph=True)
 
 saver = tf.train.Saver()
@@ -103,7 +103,7 @@ def train(RL):
     total_steps = 0
     steps = []
     episodes = []
-    for i_episode in range(6000):
+    for i_episode in range(1000):
         #observation = env.reset()
         # Starts a new episode
         game.new_episode()
@@ -135,8 +135,8 @@ def train(RL):
             #observation_, reward, done, info = env.step(action)
 
             #if done: reward = 10
-
-            RL.store_transition(observation, action, reward, observation_)
+            train_reward = reward if (angle+180)%360>90 and (angle+180)%360<270 else reward-10
+            RL.store_transition(observation, action, train_reward, observation_)
 
             if total_steps > MEMORY_SIZE:
                 RL.learn()
