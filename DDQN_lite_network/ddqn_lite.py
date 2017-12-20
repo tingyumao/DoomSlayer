@@ -18,10 +18,10 @@ GAMMA = 0.99
 FRAME_REPEAT = 4
 OBSERVE = 3000
 REPLAY_MEMORY = 5000
-MAX_TRAIN_EPISODE = 10000
+MAX_TRAIN_EPISODE = 6000
 LEARNING_RATE = 0.001
 BATCH_SIZE = 64
-CHECKPOINTS_PATH = '.\\checkpoint\\train'
+CHECKPOINTS_PATH = './checkpoint/train'
 h, w, channels = 48, 64, 3  # height, width and RGB channels
 reward_record = open('reward.txt', 'w')
 
@@ -186,22 +186,30 @@ def train():
             eps -= (eps - FINAL_EPS) / (MAX_TRAIN_EPISODE / 50)
             eps = max(eps, FINAL_EPS)
         if (e + 1) % 30 == 0:
+            print('Copying model parameters...',file=reward_record)
             print('Copying model parameters...')
             copy_model_parameters(session)
 
+        print("*" * 30, file=reward_record)
         print("*" * 30)
+        print("Finish {} th episode at {} th time steps.".format(e, t), file=reward_record)
         print("Finish {} th episode at {} th time steps.".format(e, t))
         total_reward = game.get_total_reward()
         if total_reward > max_reward:
+            print('Saving models...', file=reward_record)
             print('Saving models...')
             saver.save(session, CHECKPOINTS_PATH, global_step=e + 1)
             max_reward = total_reward
         all_episode_reward.append(game.get_total_reward())
+        print("Reward in {} th episode: {}".format(e, all_episode_reward[-1]), file=reward_record)
         print("Reward in {} th episode: {}".format(e, all_episode_reward[-1]))
-        reward_record.write(str(all_episode_reward[-1]) + ',')
         if batch_loss is not None:
+            print("Mini-batch train loss in {} th episode: {}".format(e, batch_loss), file=reward_record)
             print("Mini-batch train loss in {} th episode: {}".format(e, batch_loss))
+        print("Size of Replay Cache: {}".format(len(replay_cache)), file=reward_record)
         print("Size of Replay Cache: {}".format(len(replay_cache)))
+        print("Current max reward: {}".format(max_reward),file=reward_record)
+        print("Current max reward: {}".format(max_reward))
     game.close()
     reward_record.close()
 
