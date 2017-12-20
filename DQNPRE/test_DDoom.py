@@ -46,7 +46,7 @@ game.set_render_hud(False)
 game.set_render_crosshair(False)
 game.set_render_weapon(False)
 
-game.set_window_visible(False)
+game.set_window_visible(True)
 
 # Initialize the game window
 game.init()
@@ -122,7 +122,7 @@ def train(RL):
             img = np.expand_dims(img, axis=0)
             angle = game.get_game_variable(GameVariable.ANGLE)
             health = game.get_game_variable(GameVariable.HEALTH)
-            measures = np.asarray([((angle+90)%360)/360., health / 100.]).astype("float32")
+            measures = np.asarray([((angle+180)%360)/360., health / 100.]).astype("float32")
             measures = measures[np.newaxis, :]
             action = RL.play([img, measures])
             reward = game.make_action(actions[action], FRAME_REPEAT)
@@ -132,7 +132,7 @@ def train(RL):
             if game.is_episode_finished():
                 print('episode ', i_episode, ' finished. ', "reward: ", episode_reward)
                 steps.append(total_steps)
-                episodes.append(i_episode)
+                episodes.append(episode_reward)
                 break
 
             total_steps += 1
@@ -145,13 +145,6 @@ his_prio = train(RL_prio)
 
 # compare based on first success
 #plt.plot(his_natural[0, :], his_natural[1, :] - his_natural[1, 0], c='b', label='natural DQN')
-plt.plot(his_prio[0, :], his_prio[1, :] - his_prio[1, 0], c='r', label='DDQN with prioritized replay')
-plt.legend(loc='best')
-plt.ylabel('total training time')
-plt.xlabel('episode')
-plt.grid()
-plt.show()
-
-game.close()
+print("average reward: {}".format(np.mean(his_prio[0,:])))
 
 

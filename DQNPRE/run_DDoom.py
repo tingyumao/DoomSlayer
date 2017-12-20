@@ -27,7 +27,7 @@ INITIAL_EPS = 1.0
 FINAL_EPS = 0.1
 GAMMA = 0.9
 LAST_FRAME_NUM = 1
-FRAME_REPEAT = 4
+FRAME_REPEAT = 8
 OBSERVE = 3000
 REPLAY_MEMORY = 10000
 MAX_TRAIN_EPISODE = 10000
@@ -40,7 +40,7 @@ game = DoomGame()
 #game.set_window_visible(False)
 # Configure game. Other configurations can be found at the .cfg file. The following override.
 game.load_config(cfg_path)
-game.set_window_visible(False)
+game.set_window_visible(True)
 # game.set_mode(Mode.SPECTATOR)
 game.set_screen_format(ScreenFormat.CRCGCB)
 game.set_screen_resolution(ScreenResolution.RES_640X480)
@@ -89,7 +89,7 @@ img_w, img_h = 120, 90
 with tf.variable_scope('DDQN_with_prioritized_replay'):
     RL_prio = DDQNPrioritizedReplay(
         n_actions=8, width=img_w, height=img_h, n_features=1, memory_size=MEMORY_SIZE, batch_size=64,
-        e_greedy_increment=0.00001, sess=sess, prioritized=True, output_graph=True)
+        e_greedy_increment=0.00005, sess=sess, prioritized=True, output_graph=True)
 
 saver = tf.train.Saver()
 # initialize variables
@@ -135,14 +135,14 @@ def train(RL):
             #observation_, reward, done, info = env.step(action)
 
             #if done: reward = 10
-            train_reward = reward if (angle+180)%360>90 and (angle+180)%360<270 else reward-10
+            train_reward = reward if (angle+180)%360>100 and (angle+180)%360<260 else reward-10
             RL.store_transition(observation, action, train_reward, observation_)
 
             if total_steps > MEMORY_SIZE:
                 RL.learn()
 
             if game.is_episode_finished():
-                print('episode ', i_episode, ' finished. ', "reward: ", episode_reward)
+                print('episode ', i_episode, ' finished. ', "reward: ", episode_reward, " train reward: ", train_reward)
                 steps.append(total_steps)
                 episodes.append(i_episode)
                 break

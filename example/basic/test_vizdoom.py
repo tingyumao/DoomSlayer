@@ -15,7 +15,7 @@ import time
 
 game = DoomGame()
 game.load_config("../scenarios/defend_the_line.cfg")
-game.set_mode(Mode.SPECTATOR) 
+#game.set_mode(Mode.SPECTATOR) 
 #game.set_window_visible(False)
 game.init()
 
@@ -36,8 +36,8 @@ for i in range(episodes):
         print("angle = {}, health = {}".format(angle, health))
         # make_action take a distribution as input? So it also do the 
         # e-greedy selection inside?
-        reward = game.make_action(random.choice(actions))
+        reward = game.make_action(random.choice(actions), 10)
         print("\treward:", reward)
-        time.sleep(0.05)
+        time.sleep(0.1)
     print("Result:", game.get_total_reward())
     time.sleep(2)

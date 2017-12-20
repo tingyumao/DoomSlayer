@@ -221,7 +221,7 @@ class DDQNPrioritizedReplay:
 
         def build_cnn_fc_layers(s, v, trainable):
             # image
-            h_img = tf.layers.conv2d(s, 16, [5, 5], strides=[4, 4], padding="valid",data_format='channels_last',name="conv1", trainable=trainable)
+            h_img = tf.layers.conv2d(s, 16, [7, 7], strides=[2, 2], padding="valid",data_format='channels_last',name="conv1", trainable=trainable)
             h_img = tf.nn.relu(h_img)
             h_img = tf.layers.max_pooling2d(h_img, 2, 2)
             #h_img = tf.layers.dropout(h_img, rate=0.75)
@@ -235,7 +235,8 @@ class DDQNPrioritizedReplay:
             h_img = tf.contrib.layers.fully_connected(h_img, 512, trainable=trainable) # the default activation function is ReLU.
 
             # game variables
-            h_var = tf.contrib.layers.fully_connected(v, 512, trainable=trainable) # the default activation function is ReLU.
+            #h_var = tf.contrib.layers.fully_connected(v, 512, trainable=trainable) # the default activation function is ReLU.
+            h_var = tf.tile(v, [1, 10], name='tiled_vars')
 
             # concatenate
             h = tf.concat([h_img, h_var], axis=1, name="final_concat")
