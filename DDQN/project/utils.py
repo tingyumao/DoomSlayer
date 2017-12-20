@@ -51,11 +51,10 @@ def preprocess(frame_image, shape):
     return frame_resize
 
 
-def preprocess_depthbuf(depth_image, shape):
-    temp = Image.fromarray(depth_image)
-    temp = temp.resize(shape, Image.ANTIALIAS)
-    ndarray = np.array(temp)
-    out = np.expand_dims(ndarray, axis=-1)
+def preprocess_labelsbuf(depth_image, shape):
+    h, w = shape
+    temp = cv2.resize(depth_image, (w, h)).astype("float32")
+    out = np.expand_dims(temp, axis=-1)
     return out / 255.0
 
 

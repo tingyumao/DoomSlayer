@@ -78,7 +78,17 @@ class QNetwork(object):
                               data_format='channels_last',
                               name='depth_conv2')
         d2 = tf.nn.relu(d2)
-        dc1 = tf.layers.flatten(d2)
+
+        filter_h, filter_w, strides, out_channels = 4, 4, 2, 256
+        d3 = tf.layers.conv2d(d2, out_channels, [filter_h, filter_w],
+                              kernel_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
+                              strides=[strides, strides],
+                              padding="valid",
+                              data_format='channels_last',
+                              name='depth_conv3')
+        d3 = tf.nn.relu(d3)
+
+        dc1 = tf.layers.flatten(d3)
         dc1 = tf.contrib.layers.fully_connected(dc1, self.depth_fc1)
         dc1 = tf.layers.dropout(dc1, rate=0.3, training=True)
         dc2 = tf.nn.tanh(dc1)

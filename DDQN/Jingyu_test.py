@@ -8,7 +8,8 @@ from collections import deque
 from vizdoom import DoomGame
 from vizdoom import GameVariable
 from project import networks
-from project.utils import preprocess, e_greedy_select, preprocess_depthbuf
+from project.utils import preprocess, e_greedy_select, preprocess_labelsbuf
+from PIL import Image
 
 ACTIONS_NUM = 8
 INITIAL_EPS = 1.0
@@ -23,8 +24,8 @@ BATCH_SIZE = 64
 CHECKPOINTS_PATH = os.path.dirname(os.path.realpath(__file__)) + '\\checkpoint'
 if not os.path.exists(CHECKPOINTS_PATH):
     os.mkdir(CHECKPOINTS_PATH)
-h, w, channels = 64, 48, 3  # height, width and RGB channels
-hd, wd = 480, 640  # height, width for depth buffer
+h, w, channels = 48, 64, 3  # height, width and RGB channels
+hd, wd = 480, 640  # height, width for labels buffer
 
 
 def train():
@@ -36,7 +37,6 @@ def train():
     game = DoomGame()
     game.load_config(cfg_path)
     game.set_window_visible(False)
-    # game.set_depth_buffer_enabled(True)
     game.set_labels_buffer_enabled(True)
     # game.set_render_hud(True)
     game.set_render_weapon(True)
@@ -51,8 +51,8 @@ def train():
     net_cfg["conv2_cfg"] = [4, 4, 2, 128]
     net_cfg["vars_fc1"] = 64
     net_cfg["vars_fc2"] = 128
-    net_cfg["depth_fc1"] = 64
-    net_cfg["depth_fc2"] = 10
+    net_cfg["labels_fc1"] = 64
+    net_cfg["labels_fc2"] = 10
     net_cfg["fc_size"] = 512
     net_cfg["action_num"] = ACTIONS_NUM
 
@@ -61,21 +61,21 @@ def train():
     # Game variables placeholder: angle, health
     # Actions placeholder
     # Target value placeholder
-    # Depth buffer placeholder
-    states_ph = tf.placeholder(tf.float32, shape=(None, h, w, channels))
+    # labels buffer placeholder
+    states_ph = tf.placeholder(tf.float32, shape=(None, h, w, channels + 1))
     vars_ph = tf.placeholder(tf.float32, shape=(None, 2))
     actions_ph = tf.placeholder(tf.float32, shape=(None, ACTIONS_NUM))
     ys_ph = tf.placeholder(tf.float32, shape=(None,))
-    depth_ph = tf.placeholder(tf.float32, shape=(None, wd / 4, hd / 4, 1))
+    labels_ph = tf.placeholder(tf.float32, shape=(None, hd // 4, wd // 4, 1))
 
     # Define two networks, forward pass and the target Q network.
     print('Defining networks...')
     with tf.variable_scope('q_forward', reuse=tf.AUTO_REUSE):
         q_net = networks.QNetwork(net_cfg)
-        q_values = q_net(states_ph, vars_ph, depth_ph)
+        q_values = q_net(states_ph, vars_ph, labels_ph)
     with tf.variable_scope('q_target', reuse=tf.AUTO_REUSE):
         target_q_net = networks.QNetwork(net_cfg)
-        target_q_values = target_q_net(states_ph, vars_ph, depth_ph)
+        target_q_values = target_q_net(states_ph, vars_ph, labels_ph)
 
     # Define loss, train step and saver
     print('Defining vars...')
@@ -112,6 +112,7 @@ def train():
 
     file_writer = tf.summary.FileWriter(CHECKPOINTS_PATH, session.graph)
     global_step = 0
+
     for e in range(MAX_TRAIN_EPISODE):
         # Starts a new episode
         game.new_episode()
@@ -122,18 +123,24 @@ def train():
             # Current vars
             current_angle = game.get_game_variable(GameVariable.ANGLE)
             current_health = game.get_game_variable(GameVariable.HEALTH)
-            current_vars = np.asarray([current_angle / 360., current_health / 100.])
+            current_vars = np.asarray([current_angle, current_health])
             # Current screen buffer
             screen_buf = current_state.screen_buffer
             screen_buf = preprocess(screen_buf.transpose(1, 2, 0), (h, w))
-            current_store_state = screen_buf
-            # Current depth buffer
-            depth_buf = current_state.labels_buffer
-            depth_buf = preprocess_depthbuf(depth_buf, (hd // 4, wd // 4))
 
-            current_q = session.run(q_values, feed_dict={states_ph: np.expand_dims(current_store_state, axis=0),
+            # Current labels buffer
+            labels_buf = current_state.labels_buffer
+            labels_buf = preprocess_labelsbuf(labels_buf, (hd // 4, wd // 4))
+            current_store_labels = labels_buf
+            labels_buf_for_combine = preprocess_labelsbuf(current_state.labels_buffer, (h, w))
+
+            # Combine state buffer and labels buffer for state_ph
+            input_states_ph = np.concatenate([screen_buf, labels_buf_for_combine], axis=2)
+            current_store_state = input_states_ph
+
+            current_q = session.run(q_values, feed_dict={states_ph: np.expand_dims(input_states_ph, axis=0),
                                                          vars_ph: np.expand_dims(current_vars, axis=0),
-                                                         depth_ph: np.expand_dims(depth_buf, axis=0)})
+                                                         labels_ph: np.expand_dims(labels_buf, axis=0)})
             current_q = np.squeeze(current_q)
 
             # Get an action according to eps-greedy policy and make it.
@@ -145,21 +152,24 @@ def train():
             next_state = game.get_state()
             next_store_state = np.zeros_like(current_store_state)
             next_vars = np.zeros_like(current_vars)
-            next_depth_buf = np.zeros_like(depth_buf)
+            next_labels_buf = np.zeros_like(labels_buf)
 
             # Look at the next state. For experience replay purposes.
             if not terminal:
                 next_frame = preprocess(next_state.screen_buffer.transpose(1, 2, 0), (h, w))
-                next_store_state = next_frame
+                next_labels_for_combine = preprocess_labelsbuf(next_state.labels_buffer, (h, w))
+                next_labels = preprocess_labelsbuf(next_state.labels_buffer, (hd // 4, wd // 4))
+                next_store_state = np.concatenate([next_frame, next_labels_for_combine], axis=2)
                 next_angle = game.get_game_variable(GameVariable.ANGLE)
                 next_health = game.get_game_variable(GameVariable.HEALTH)
                 next_vars = np.asarray([next_angle / 360., next_health / 100.])
-                next_depth_buf = preprocess_depthbuf(next_state.labels_buffer, (hd // 4, wd // 4))
+                next_labels_buf = next_labels
+                # print(next_labels_buf.shape)
 
             # Push into replay cache
             replay_cache.append(
-                [current_store_state, current_vars, depth_buf, current_a_onehot, current_reward, next_store_state,
-                 next_vars, next_depth_buf, terminal])
+                [current_store_state, current_vars, current_store_labels, current_a_onehot, current_reward,
+                 next_store_state, next_vars, next_labels_buf, terminal])
             if len(replay_cache) > REPLAY_MEMORY:
                 for _ in range(REPLAY_MEMORY - OBSERVE):
                     replay_cache.popleft()
@@ -171,34 +181,32 @@ def train():
                 # Extract data from batch data
                 batch_state = [x[0] for x in batch_data]
                 batch_vars = [x[1] for x in batch_data]
-                batch_depth = [x[2] for x in batch_data]
+                batch_labels = [x[2] for x in batch_data]
                 batch_action = [x[3] for x in batch_data]
                 batch_reward = [x[4] for x in batch_data]
                 batch_n_state = [x[5] for x in batch_data]
                 batch_n_vars = [x[6] for x in batch_data]
-                batch_n_depth = [x[7] for x in batch_data]
+                batch_n_labels = [x[7] for x in batch_data]
                 batch_terminal = [x[8] for x in batch_data]
 
-                # Additional process for health
-                # batch_health = np.expand_dims(batch_health, axis=-1)
-                # y_batch = []
+
                 q_batch = session.run(q_values, feed_dict={states_ph: batch_n_state,
                                                            vars_ph: batch_n_vars,
-                                                           depth_ph: batch_n_depth})
+                                                           labels_ph: batch_n_labels})
                 target_q_batch = session.run(target_q_values,
                                              feed_dict={states_ph: batch_n_state,
                                                         vars_ph: batch_n_vars,
-                                                        depth_ph: batch_n_depth})
+                                                        labels_ph: batch_n_labels})
 
                 y_batch = batch_reward + np.invert(batch_terminal).astype(np.float32) * GAMMA * target_q_batch[
                     np.arange(BATCH_SIZE), np.argmax(q_batch, axis=1)]
 
                 batch_loss, summary_val, _ = session.run([cost, summary, train_step],
-                                            feed_dict={states_ph: batch_state,
-                                                       actions_ph: batch_action,
-                                                       ys_ph: y_batch,
-                                                       vars_ph: batch_vars,
-                                                       depth_ph: batch_depth})
+                                                         feed_dict={states_ph: batch_state,
+                                                                    actions_ph: batch_action,
+                                                                    ys_ph: y_batch,
+                                                                    vars_ph: batch_vars,
+                                                                    labels_ph: batch_labels})
             global_step += 1
             t += 1
 
@@ -210,7 +218,7 @@ def train():
             print('Copying model parameters...')
             copy_model_parameters(session)
             saver.save(session, CHECKPOINTS_PATH + '\\mytest', global_step=e + 1)
-            file_writer.add_summary(summary_val, global_step=global_step)
+            # file_writer.add_summary(summary_val, global_step=global_step)
         print("*" * 30)
         print("Finish {} th episode at {} th time steps.".format(e, t))
         all_episode_reward.append(game.get_total_reward())
