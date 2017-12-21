@@ -14,7 +14,8 @@ import random
 import time
 
 game = DoomGame()
-game.load_config("../scenarios/defend_the_line.cfg")
+game.load_config("../scenarios/rocket_basic.cfg")
+#game.set_window_visible(False)
 game.init()
 
 shoot = [0, 0, 1]
