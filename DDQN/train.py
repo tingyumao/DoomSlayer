@@ -76,18 +76,26 @@ def train():
     net_cfg["fc_img"] = 128
     net_cfg["fc_size"] = 256
     net_cfg["action_num"] = ACTIONS_NUM
-    with tf.variable_scope("q_network", reuse=True):
+    with tf.variable_scope("q_network", reuse=None):
         net = QNetwork(net_cfg)
-
+        q_values = net(states_ph)
+    with tf.variable_scope("target_q_network", reuse=None):
+        target_net = QNetwork(net_cfg)
+        target_q_values = target_net(states_ph)
+    print(tf.trainable_variables())       
     # define loss
+<<<<<<< HEAD
     q_values = net(states_ph, vars_ph)
     print("*"*80)
     print(q_values)
     print("*"*80)
+=======
+    # q_values = net(states_ph)
+>>>>>>> master
     q_s_a = tf.reduce_sum(q_values * actions_ph, axis=1)
     loss = tf.reduce_mean(tf.square(ys_ph - q_s_a))
     
-    target_q_values = q_values
+    # target_q_values = target_net(states_ph)
     
     # define train_step
     train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss)
@@ -118,11 +126,12 @@ def train():
     save_loss = []
     save_reward = []
     # start training
+    t = 0 # global time step
     eps = INITIAL_EPS
     all_episode_reward = [] # record total reward in each episode.
     for e in range(MAX_TRAIN_EPISODE):
         game.new_episode()
-        t = 0 # reset the time step at the beginning of a game.
+        # t = 0 # reset the time step at the beginning of a game.
         while not game.is_episode_finished():
             current_state = game.get_state()
             current_frame = current_state.screen_buffer # return a numpy array 3xHxW
@@ -221,7 +230,11 @@ def train():
                 
             # update t
             t += 1
-            
+
+            # copy model parameters every 1000 episodes
+            if (t+1)%100 == 0:
+                print("copying target network................................")
+                copy_model_parameters(session)
             # update eps every 100 episodes
             if (e+1)%100 == 0:
                 eps -= (eps-FINAL_EPS)/(MAX_TRAIN_EPISODE/100)
@@ -229,7 +242,7 @@ def train():
                 
         # after finishing each episode, print out its total reward.
         print("*"*100)
-        print("Finish {} th episode at {} th time steps.".format(e, t))
+        print("Finish {} th episode.".format(e))
         all_episode_reward.append(game.get_total_reward())
         print("Reward in {} th episode: {}".format(e, np.mean(all_episode_reward[-1:])))
         if batch_loss != None:
@@ -237,6 +250,7 @@ def train():
             save_loss.append(batch_loss)
         print("Size of Replay Cache: {}".format(len(replay_cache)))
         print("*"*100)
+<<<<<<< HEAD
         # save the model every 100 episodes
         if (e+1)%100 == 0:
             saver.save(session, 'saved_networks/' + scene_name + '/doom-dqn-' + scene_name, global_step = e+1)
@@ -250,7 +264,28 @@ def train():
             pickle.dump(save_log, handle)
 
     
+=======
+        # save the model every 1000 episodes
+        if (e+1)%1000 == 0:
+            saver.save(session, 'saved_networks/' + scene_name + '/doom-ddqn-' + scene_name, global_step = e+1)
+>>>>>>> master
 
+def copy_model_parameters(sess):
+    """
+    Copies the model parameters of one estimator to another.
+    """
+    params1 = [t for t in tf.trainable_variables() if t.name.startswith("q_network")]
+    params1 = sorted(params1, key=lambda v: v.name)
+    params2 = [t for t in tf.trainable_variables() if t.name.startswith("target_q_network")]
+    params2 = sorted(params2, key=lambda v: v.name)
+
+    update_ops = []
+    for v1, v2 in zip(params1, params2):
+        op = v2.assign(v1)
+        update_ops.append(op)
+
+    sess.run(update_ops)
+    
 if __name__ == "__main__":
     train()
     
