@@ -1,0 +1,7 @@
+scipy
+vizdoom
+tensorflow-gpu
+tqdm
+opcv-python
+matplotlib
+
