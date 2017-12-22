@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# ELEN 6885 Final project
+# Double DQN network
+# To be run on Linux systems
 import tensorflow as tf
 import numpy as np
 import random

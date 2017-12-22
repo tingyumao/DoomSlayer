@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# ELEN 6885 Final project
+# Double DQN network
+# To be run on Linux systems
 import tensorflow as tf
 import numpy as np
 import random
@@ -16,8 +19,8 @@ INITIAL_EPS = 1.0
 FINAL_EPS = 0.1
 GAMMA = 0.99
 FRAME_REPEAT = 4
-OBSERVE = 3000
-REPLAY_MEMORY = 5000
+OBSERVE = 20000
+REPLAY_MEMORY = 40000
 MAX_TRAIN_EPISODE = 6000
 LEARNING_RATE = 0.001
 BATCH_SIZE = 64
@@ -34,7 +37,7 @@ def train():
     # Override default game configurations.
     game = DoomGame()
     game.load_config(cfg_path)
-    game.set_window_visible(False)
+    game.set_window_visible(True)
     game.set_labels_buffer_enabled(True)
     game.set_render_weapon(True)
     game.init()
@@ -91,7 +94,7 @@ def train():
     # Create session
     session = tf.InteractiveSession()
     session.run(tf.global_variables_initializer())
-    checkpoint = tf.train.get_checkpoint_state(CHECKPOINTS_PATH)
+    checkpoint = tf.train.get_checkpoint_state('./checkpoint')
 
     # Load old trained model
     if checkpoint and checkpoint.model_checkpoint_path:
@@ -168,7 +171,8 @@ def train():
                 batch_n_state = [x[3] for x in batch_data]
                 batch_terminal = [x[4] for x in batch_data]
 
-                q_batch = session.run(q_values, feed_dict={states_ph: batch_n_state})
+                q_batch = session.run(q_values, feed_dict={
+                                      states_ph: batch_n_state})
                 target_q_batch = session.run(target_q_values,
                                              feed_dict={states_ph: batch_n_state})
 
@@ -186,13 +190,13 @@ def train():
             eps -= (eps - FINAL_EPS) / (MAX_TRAIN_EPISODE / 50)
             eps = max(eps, FINAL_EPS)
         if (e + 1) % 30 == 0:
-            print('Copying model parameters...',file=reward_record)
+            print('Copying model parameters...', file=reward_record)
             print('Copying model parameters...')
             copy_model_parameters(session)
 
-        print("*" * 30, file=reward_record)
+        # print("*" * 30, file=reward_record)
         print("*" * 30)
-        print("Finish {} th episode at {} th time steps.".format(e, t), file=reward_record)
+        # print("Finish {} th episode at {} th time steps.".format(e, t), file=reward_record)
         print("Finish {} th episode at {} th time steps.".format(e, t))
         total_reward = game.get_total_reward()
         if total_reward > max_reward:
