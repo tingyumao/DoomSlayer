@@ -8,3 +8,5 @@ Our initial goal is to pass the basic test scenarios in ./example/scenarios/ fol
 Ref:
 * https://github.com/itaicaspi/keras-dqn-doom
 * https://github.com/fhennecker/deepdoom
+* Prioritized replay: https://github.com/MorvanZhou/Reinforcement-learning-with-tensorflow
+* A3C: https://github.com/awjuliani/DeepRL-Agents
