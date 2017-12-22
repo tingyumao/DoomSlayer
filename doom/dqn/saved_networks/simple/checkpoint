@@ -1,6 +1,0 @@
-model_checkpoint_path: "doom-dqn-simple-5000"
-all_model_checkpoint_paths: "doom-dqn-simple-1000"
-all_model_checkpoint_paths: "doom-dqn-simple-2000"
-all_model_checkpoint_paths: "doom-dqn-simple-3000"
-all_model_checkpoint_paths: "doom-dqn-simple-4000"
-all_model_checkpoint_paths: "doom-dqn-simple-5000"
