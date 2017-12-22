@@ -1,4 +1,8 @@
 """
+Optimized network based on https://morvanzhou.github.io/tutorials/
+"""
+
+"""
 The DQN improvement: Prioritized Experience Replay (based on https://arxiv.org/abs/1511.05952)
 
 View more on my tutorial page: https://morvanzhou.github.io/tutorials/
